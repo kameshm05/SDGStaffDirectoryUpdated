@@ -47283,10 +47283,8 @@ var StaffdirectoryWebPart = /** @class */ (function (_super) {
                 jquery__WEBPACK_IMPORTED_MODULE_5__(this).val("");
                 jquery__WEBPACK_IMPORTED_MODULE_5__(this).parent().find("label").text("Choose File");
             }
-            // console.log(bioAttachArr);
         });
         jquery__WEBPACK_IMPORTED_MODULE_5__(document).on("click", ".clsRemove", function () {
-            // console.log(bioAttachArr);
             //var filename=$(this).attr('filename');
             var filename = jquery__WEBPACK_IMPORTED_MODULE_5__(this).parent().children()[0].innerText;
             removeSelectedfile(filename);
@@ -48286,7 +48284,7 @@ var editsubmitFunction = function () { return __awaiter(_this, void 0, void 0, f
                             .then(function (data) {
                             _pnp_sp_presets_all__WEBPACK_IMPORTED_MODULE_6__["sp"].web
                                 .getFolderByServerRelativeUrl(data.data.ServerRelativeUrl)
-                                .files.add(filedata.name, filedata.content, true);
+                                .files.add(filedata.name, filedata, true);
                         });
                     });
                 }
