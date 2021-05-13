@@ -2541,6 +2541,7 @@ const multipleEmergencyNo = () => {
   );
 };
 const fillEditSection = (ID) =>{
+  console.log("log")
   
    console.log(ID);console.log("Test")
    var editedData = availList.filter((e)=>{return e.Id == parseInt(ID)});
