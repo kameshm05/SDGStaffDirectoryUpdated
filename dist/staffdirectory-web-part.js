@@ -50254,17 +50254,11 @@ var multipleEmergencyNo = function () {
     jquery__WEBPACK_IMPORTED_MODULE_5__("#emergencyNoSec").append("<div class=\"d-flex emergencyNumbers\"><select class=\"emergencyNoCode\">" + CCodeHtml + "</select><input type=\"number\" class=\"mobNo\" id=\"emergencyno1\"/><span class=\"removeHomeNo remove-icon\"></span></div>");
 };
 var fillEditSection = function (ID) {
-    //  sp.web
-    // .getList(listUrl + "SDGAvailability").items.getById(ID).get().then((item:any)=>{
+    console.log("log");
+    console.log(ID);
+    console.log("Test");
     var editedData = availList.filter(function (e) { return e.Id == parseInt(ID); });
     if (editedData.length > 0) {
-        // var finalmonth: any = "";
-        // var dd = new Date(SelectedUserProfile[0].EffectiveDate).getDate();
-        // var mm = new Date(SelectedUserProfile[0].EffectiveDate).getMonth() + 1;
-        // mm < 10 ? (finalmonth = "0" + mm) : (finalmonth = mm);
-        // var yyyy = new Date(SelectedUserProfile[0].EffectiveDate).getFullYear();
-        // var dateformat = yyyy + "-" + finalmonth + "-" + dd;
-        // $("#EffectiveDateEdit").val(dateformat);
         var Sfinalmonth = "";
         var Sfinalday = "";
         var Sdd = new Date(editedData[0].StartDate).getDate();
@@ -50290,7 +50284,6 @@ var fillEditSection = function (ID) {
         jquery__WEBPACK_IMPORTED_MODULE_5__("#projectAvailNotes").val(editedData[0].Notes);
         jquery__WEBPACK_IMPORTED_MODULE_5__("#Projectcomments").val(editedData[0].Comments);
     }
-    // })
 };
 var availSubmitFunc = function () { return __awaiter(_this, void 0, void 0, function () {
     var bwArray, isAllSuccess, sDate, eDate, startd, endd, newend, newDate, enteredPercentage, _loop_1, dayValue, correlationPercentage, i, state_1, ProjectPercent, submitProject;
@@ -50389,7 +50382,6 @@ var availUpdateFunc = function () {
     endd = new Date(newend);
     while (startd < endd) {
         bwArray.push(new Date(startd).toLocaleDateString());
-        console.log(startd); // ISO Date format          
         var newDate = startd.setDate(startd.getDate() + 1);
         startd = new Date(newDate);
     }

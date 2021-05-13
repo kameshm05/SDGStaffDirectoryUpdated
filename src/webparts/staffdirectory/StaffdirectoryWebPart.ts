@@ -2556,11 +2556,13 @@ const fillEditSection = (ID) =>{
       var Sdateformat = Syyyy + "-" + Sfinalmonth + "-" + Sfinalday;
 
       var Efinalmonth: any = "";
+      var Efinalday: any = "";
       var Edd = new Date(editedData[0].EndDate).getDate();
+      Edd < 10 ? (Efinalday = "0" + Edd) : (Efinalday = Edd);
       var Emm = new Date(editedData[0].EndDate).getMonth() + 1;
       Emm < 10 ? (Efinalmonth = "0" + Smm) : (Efinalmonth = Emm);
       var Eyyyy = new Date(editedData[0].EndDate).getFullYear();
-      var Edateformat = Eyyyy + "-" + Efinalmonth + "-" + Edd;
+      var Edateformat = Eyyyy + "-" + Efinalmonth + "-" + Efinalday;
     $("#projectName").val(editedData[0].Project);
     $("#projectStartDate").val(Sdateformat);
     $("#projectEndDate").val(Edateformat);
