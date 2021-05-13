@@ -1307,10 +1307,8 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
         $(this).val("");
         $(this).parent().find("label").text("Choose File");
       }
-      // console.log(bioAttachArr);
     });
     $(document).on("click", ".clsRemove", function () {
-      // console.log(bioAttachArr);
       //var filename=$(this).attr('filename');
       var filename = $(this).parent().children()[0].innerText;
       removeSelectedfile(filename);
@@ -2491,7 +2489,7 @@ const editsubmitFunction = async () => {
         .then((data) => {
           sp.web
             .getFolderByServerRelativeUrl(data.data.ServerRelativeUrl)
-            .files.add(filedata.name, filedata.content, true);
+            .files.add(filedata.name, filedata, true);
         });
     });
   }
