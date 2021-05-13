@@ -50268,11 +50268,13 @@ var fillEditSection = function (ID) {
         var Syyyy = new Date(editedData[0].StartDate).getFullYear();
         var Sdateformat = Syyyy + "-" + Sfinalmonth + "-" + Sfinalday;
         var Efinalmonth = "";
+        var Efinalday = "";
         var Edd = new Date(editedData[0].EndDate).getDate();
+        Edd < 10 ? (Efinalday = "0" + Edd) : (Efinalday = Edd);
         var Emm = new Date(editedData[0].EndDate).getMonth() + 1;
         Emm < 10 ? (Efinalmonth = "0" + Smm) : (Efinalmonth = Emm);
         var Eyyyy = new Date(editedData[0].EndDate).getFullYear();
-        var Edateformat = Eyyyy + "-" + Efinalmonth + "-" + Edd;
+        var Edateformat = Eyyyy + "-" + Efinalmonth + "-" + Efinalday;
         jquery__WEBPACK_IMPORTED_MODULE_5__("#projectName").val(editedData[0].Project);
         jquery__WEBPACK_IMPORTED_MODULE_5__("#projectStartDate").val(Sdateformat);
         jquery__WEBPACK_IMPORTED_MODULE_5__("#projectEndDate").val(Edateformat);
