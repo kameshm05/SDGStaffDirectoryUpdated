@@ -724,7 +724,8 @@ var MANIFESTS_ARRAY = [
         },
         "StaffdirectoryWebPartStrings": {
           "defaultPath": "lib/webparts/staffdirectory/loc/en-us.js",
-          "type": "localizedPath"
+          "type": "localizedPath",
+          "paths": {}
         },
         "@microsoft/sp-property-pane": {
           "type": "component",

@@ -14,11 +14,10 @@ SPComponentLoader.loadScript(
 
 import * as $ from "jquery";
 import { sp } from "@pnp/sp/presets/all";
-import { graph } from "@pnp/graph";
-
-import "@pnp/graph/users";
-import "@pnp/graph/photos";
+import "@pnp/sp/files";
+import "@pnp/sp/folders";
 import "@pnp/sp/profiles";
+import "@pnp/sp/site-groups";
 SPComponentLoader.loadScript(
   "https://ajax.aspnetcdn.com/ajax/jQuery/jquery-2.2.4.min.js"
   // "https://code.jquery.com/jquery-3.5.1.js"
@@ -81,13 +80,16 @@ let AvailEditFlag = false;
 let AvailEditID = 0;
 let AllAvailabilityDetails=[];
 let availList=[];
+var editID;
+var IsgeneralStaff=false;
+var IssplStaff=false;
+var IsAdminStaff=false;
+var currentMail="";
+var ProfilePics=[];
 export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffdirectoryWebPartProps> {
   public onInit(): Promise<void> {
     return super.onInit().then((_) => {
       sp.setup({
-        spfxContext: this.context,
-      });
-      graph.setup({
         spfxContext: this.context,
       });
     });
@@ -95,17 +97,19 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
 
   public render(): void {
     listUrl = this.context.pageContext.web.absoluteUrl;
+    currentMail = this.context.pageContext.user.email;
+
     var siteindex = listUrl.toLocaleLowerCase().indexOf("sites");
     listUrl = listUrl.substr(siteindex - 1) + "/Lists/";
     this.domElement.innerHTML = `
-     <div class="grid-section">    
+     <div class="grid-section">
      <div class="left">
      <div class="left-nav">
      <div class="accordion" id="accordionExample">
      <div class="card">
        <div class="card-header nav-items SDHEmployee show" id="headingOne">
            <div data-toggle="collapse" class="clsToggleCollapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne"><span class="nav-icon sdh-emp"></span>SDG Employees</div>
-           
+
        </div>
        <div id="collapseOne" class="clsCollapse collapse" aria-labelledby="headingOne" data-parent="#accordionExample">
          <div class="card-body">
@@ -213,8 +217,8 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
          </div>
          </div>
        </div>
-     </div> 
-     <div class="card">  
+     </div>
+     <div class="card">
        <div class="card-header nav-items SDGBillingRate" id="headingEight">
            <div data-toggle="collapse" class="clsToggleCollapse" data-target="#collapseEight" aria-expanded="false" aria-controls="collapseEight"><span class="nav-icon billing-rate"></span>Billing Rates</div>
        </div>
@@ -229,22 +233,22 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
          </div>
        </div>
      </div>
-   </div> 
+   </div>
      </div>
      </div>
      <div class="right">
      <div class="sdh-employee" id="SdhEmployeeDetails">
      <!-- <div class="title-section">
      <h2>Overview</h2>
-     </div> --> 
+     </div> -->
      <div class="title-filter-section">
-     </div>   
+     </div>
      <div class="sdh-emp-table oDataTable">
      <table  id="SdhEmpTable">
      <thead>
      <tr>
      <th>Name</th>
-     <th>First Name</th> 
+     <th>First Name</th>
      <th>Last Name</th>
      <th>Phone Number</th>
      <th>Location</th>
@@ -256,13 +260,13 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
      <tbody id="SdhEmpTbody">
      </tbody>
      </table>
-     </div> 
+     </div>
      <div class="sdh-outside-table oDataTable hide">
      <table  id="SdhOutsideTable">
      <thead>
      <tr>
      <th>Name</th>
-     <th>First Name</th> 
+     <th>First Name</th>
      <th>Last Name</th>
      <th>Phone Number</th>
      <th>Location</th>
@@ -274,13 +278,13 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
      <tbody id="SdhOutsideTbody">
      </tbody>
      </table>
-     </div> 
+     </div>
      <div class="sdh-Affilate-table oDataTable hide">
      <table  id="SdhAffilateTable">
      <thead>
      <tr>
      <th>Name</th>
-     <th>First Name</th> 
+     <th>First Name</th>
      <th>Last Name</th>
      <th>Phone Number</th>
      <th>Location</th>
@@ -299,7 +303,7 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
      <thead>
      <tr>
      <th>Name</th>
-     <th>First Name</th> 
+     <th>First Name</th>
      <th>Last Name</th>
      <th>Phone Number</th>
      <th>Location</th>
@@ -317,7 +321,7 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
      <thead>
      <tr>
      <th>Name</th>
-     <th>First Name</th> 
+     <th>First Name</th>
      <th>Last Name</th>
      <th>Phone Number</th>
      <th>Location</th>
@@ -330,13 +334,13 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
      </tbody>
      </table>
      </div>
-     
+
      <div class="sdgofficeinfotable oDataTable hide">
      <table  id="SdgofficeinfoTable">
      <thead>
      <tr>
      <th>Office</th>
-     <th>Phone</th> 
+     <th>Phone</th>
      <th>Address</th>
      </tr>
      </thead>
@@ -349,7 +353,7 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
      <thead>
      <tr>
      <th>Name</th>
-     <th>Satff Function</th> 
+     <th>Satff Function</th>
      <th>Daily Rate</th>
      <th>Hourly Rate</th>
      <th>Effective Date</th>
@@ -369,7 +373,7 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
      </div>
 
      </div>
-     
+
      <div class="user-profile-page hide">
      <!-- <div class="title-section">
      <h2>Employee Detail</h2>
@@ -377,12 +381,12 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
      <div class="user-profile-cover">
      <div class="cover-bg">
      <div class="profile-picture-sec">
-     <img src="data:image/png;base64,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" class="profile-picture"> 
-     </div>  
+     <img src="data:image/png;base64,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" class="profile-picture">
+     </div>
      <div class="profile-name-section">
      <p class="profile-user-name" id="UserProfileName">Sample User</p>
-     <p class="profile-user-mail" id="UserProfileEmail"><span class="user-mail-icon"></span>Sample mail</p>        
-     </div>   
+     <p class="profile-user-mail" id="UserProfileEmail"><span class="user-mail-icon"></span>Sample mail</p>
+     </div>
      </div>
      <div class="user-details-section">
      <div class="profile-details-left">
@@ -390,86 +394,86 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
      <label>Job Title:</label>
      <div class="title-font" id="user-job-title"></div>
      </div>
-     <div class="user-info">   
-     <label>SDG Affiliation :</label> 
+     <div class="user-info">
+     <label>SDG Affiliation :</label>
      <div class="title-font" id="user-Designation"></div>
      </div>
-     <div class="user-info">   
-     <label>Staff Function :</label> 
+     <div class="user-info">
+     <label>Staff Function :</label>
      <div class="title-font" id="user-staff-function"></div>
      </div>
-     
+
      </div>
      <div class="profile-details-right">
-     <div class="user-info"> 
+     <div class="user-info">
      <label>Mobile:</label>
      <div class="title-font" id="user-phone"></div>
      </div>
-     
-     <div class="user-info hide"><label>Personal Mail :</label><div class="title-font" id="userpersonalmail"></div></div> 
+
+     <div class="user-info hide"><label>Personal Mail :</label><div class="title-font" id="userpersonalmail"></div></div>
      <div class="user-info">
       <div class="d-flex align-item-center"><label>LinkedIn :</label><div class="" id="linkedinIDview"></div></div>
       </div>
-     </div> 
+     </div>
      </div>
      </div>
      <div class="user-profile-tabs">
-     <div class="tab-section"> 
-     <div class="tab-header-section">  
+     <div class="tab-section">
+     <div class="tab-header-section">
      <ul class="nav nav-tabs">
        <li class="active"><a data-toggle="tab" href="#home">Directory Information</a></li>
        <li id="availabilityTab"><a data-toggle="tab" href="#menu1">Availability</a></li>
      </ul>
-     
+
      </div>
      <div>
      <div class="tab-content">
     <div id="home" class="tab-pane fade in active">
-    <div class="text-right" ><button class="btn btn-edit" id="btnEdit">Edit</button></div> 
+    <div class="text-right" ><button class="btn btn-edit" id="btnEdit">Edit</button></div>
       <div id="DirectoryInformation" class="d-flex view-directory">
       <div class="DInfo-left col-6">
       <div class="work-address">
       <h4>Work Address</h4>
       <div class="d-flex"><label>Location :</label><div class="address-details lblRight" id="WLoctionDetails"></div></div>
       <div class="d-flex align-item-center"><label>Address:</label><div class="address-details lblRight" id="WAddressDetails"></div>
-      </div> 
       </div>
-      
+      </div>
+
       <div class="Assistant-view" id="viewAssistant">
-      
+
       </div>
       <div class="personal-info">
       <h4>Personal Info</h4>
-      <div class="address-details" id="PersonaInfo"> 
+      <div class="address-details" id="PersonaInfo">
       <div class="d-flex"><label>Address Line:</label><div id="PAddLine" class="lblRight"></div></div>
       <div class="d-flex"><label>City:</label><div id="PAddCity" class="lblRight"></div></div>
       <div class="d-flex"><label>State:</label><div id="PAddState" class="lblRight"></div></div>
-      <div class="d-flex"><label>Postal Code :</label><div id="PAddPCode" class="lblRight"></div></div> 
+      <div class="d-flex"><label>Postal Code :</label><div id="PAddPCode" class="lblRight"></div></div>
       <div class="d-flex"><label>Country:</label><div id="PAddPCountry" class="lblRight"></div></div>
       <div class="d-flex"><label>Significant Other :</label><div id="PSignOther" class="lblRight"></div></div>
       <div class="d-flex"><label>Children :</label><div id="PChildren" class="lblRight"></div></div>
       </div>
       </div>
-      
-      
-      
+
+
+
       <div class="StaffStatus">
       <h4>Staff Status</h4>
-      <p class="lblRight" id="staffStatus"></p> 
+      <p class="lblRight" id="staffStatus"></p>
       <div id="workscheduleViewSec">
       <div class="d-flex"><label>Work Schedule</label><p class="lblRight" id="workSchedule"></p></div>
-      
+
       </div>
       </div>
       <div class="citizen-info">
-      
-      <div class="address-details" id="CitizenInfo"> 
+
+      <div class="address-details" id="CitizenInfo">
       <div><label>Nationality :</label><label id="citizenship" class="lblRight"></label></div>
       </div>
       </div>
       </div>
       <div class="DInfo-right col-6">
-      <div class="user-billing-rates">
+      <div class="user-billing-rates hide">
       <h4>Billing Rates</h4>
       <div id="BillingRateDetails">
       <div class="billing-rates"><label>USD Daily Rates</label><div class="usd-daily-rate" id="UsdDailyRate"></div></div>
@@ -479,15 +483,15 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
       <div class="billing-effective-date"><label>Effective Date</label><div class="effective-date" id="EffectiveDate"></div></div>
       </div>
       </div>
-      <div class="Biography-Experience"> 
+      <div class="Biography-Experience">
       <h4>Biography and Experience</h4>
-      <div class="address-details" id="BioExp">  
+      <div class="address-details" id="BioExp">
       <h5>Short Bio</h5>
-      <p id="shortbio" class="lblRight"></p> 
+      <p id="shortbio" class="lblRight"></p>
       <h5>Bio Attachment(s)</h5>
       <div class="bio-attachment-section" id="bioAttachment"></div>
       <div class="other-exp">
-      <h5>Other Experience Details</h5> 
+      <h5>Other Experience Details</h5>
       <div class="exp">
       <div class=""><label>Industries</label>
       <p id="IndustryExp" class="lblRight"></p>
@@ -515,8 +519,8 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
       </div>
       </div>
       </div>
-      </div>  
-      </div> 
+      </div>
+      </div>
       <div id="DirectoryInformationEdit" class="edit-directory hide">
       <div class="d-flex">
       <div class="DInfo-left col-6">
@@ -550,37 +554,37 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
       <div class="assisstant-name d-flex">
       <label>Name</label>
       <div class="w-100"><div id="peoplepickerText" title="APickerField"></div></div>
-      
+
       </div>
       </div>
       <div class="contact-info">
       <h4>Contact Info</h4>
-      <div class="address-details" id="ContactInfo"> 
+      <div class="address-details" id="ContactInfo">
       <div class="d-flex"><label>Personal Mail :</label><div class="w-100"><input type="text" id="personalmailID"></div></div>
       <div class="d-flex"><label>Mobile No :</label><div class="w-100" id ="mobileNoSec"><div class="d-flex mobNumbers"><select class="mobNoCode"></select><input type="number" class="mobNo" id="mobileno1"/><span class="addMobNo add-icon"></span></div></div></div>
       <div class="d-flex"><label>Home No :</label><div class="w-100" id="homeNoSec"><div class="d-flex homeNumbers"><select class="homeNoCode"></select><input type="number" class="homeno" id="homeno"/><span class="addHomeNo add-icon"></span></div></div></div>
       <div class="d-flex"><label>Emergency No :</label><div class="w-100" id="emergencyNoSec"><div class="d-flex emergencyNumbers"><select class="emergencyNoCode"></select><input type="number" class="emergencyno" id="emergencyno" /><span class="addEmergencyNo add-icon"></span></div></div></div>
-      
+
       <div class="d-flex"><label>Significant Other :</label><div class="w-100"><textarea id="significantOther"></textarea></div></div>
       <div class="d-flex"><label>Children :</label><div class="w-100"><textarea id="children"></textarea></div></div>
       <div class="d-flex"><label>LinkedIn ID :</label><div class="w-100"><input type="text" id="linkedInID"></div></div>
-      </div> 
+      </div>
       </div>
       <div class="personal-info">
-      <h4>Personal Info</h4> 
-      <div class="address-details" id="PersonaInfo"> 
+      <h4>Personal Info</h4>
+      <div class="address-details" id="PersonaInfo">
       <div class="d-flex"><label>Address Line:</label><div class="w-100"><input type="text" id="PAddLineE"></div></div>
       <div class="d-flex"><label>City:</label><div class="w-100"><input type="text" id="PAddCityE"></div></div>
       <div class="d-flex"><label>State:</label><div class="w-100"><input type="text" id="PAddStateE"></div></div>
-      <div class="d-flex"><label>Postal Code :</label><div class="w-100"><input type="text" id="PAddPCodeE"></div></div> 
+      <div class="d-flex"><label>Postal Code :</label><div class="w-100"><input type="text" id="PAddPCodeE"></div></div>
       <div class="d-flex"><label>Country:</label><div class="w-100"><input type="text" id="PAddCountryE"></div></div>
       </div>
       </div>
 
-      
+
       <div class="StaffStatus">
-      <h4>Staff Status</h4> 
-      <div class="d-flex w-100"> 
+      <h4>Staff Status</h4>
+      <div class="d-flex w-100">
       <label>Status</label><div class="w-100"><select id="staffstatusDD"></select></div></div>
       <div id="workscheduleEdit">
       <div class="d-flex w-100 hide" id="workscheduleSec">
@@ -588,19 +592,29 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
       <div class="w-100"><input type="text" id="workScheduleE"></div>
       </div>
       </div>
-      </div> 
+      </div>
       <div class="citizen-info">
-      <div class="address-details" id="CitizenInfo"> 
+      <div class="address-details" id="CitizenInfo">
       <div class="d-flex w-100"><label>Nationality:</label><div class="w-100"><input type="text" id="citizenshipE"></div></div>
       </div>
       </div>
-      </div> 
+      </div>
 
       <div class="DInfo-right col-6">
-      <div class="user-billing-rates">
+      <div class="user-billing-rates hide">
       <h4>Billing Rates</h4>
+      <div id="BillingRateDetailsView" class="hide">
+      <div id="BillingRateDetails">
+      <div class="billing-rates"><label>USD Daily Rates</label><div class="usd-daily-rate" id="UsdDailyRate"></div></div>
+      <div class="billing-rates"><label>USD Hourly Rates</label><div class="usd-hourly-rate" id="UsdHourlyRate"></div></div>
+      <div class="billing-rates"><label>EUR Daily Rates</label><div class="eur-daily-rate" id="EURDailyRate"></div></div>
+      <div class="billing-rates"><label>EUR Hourly Rates</label><div class="eur-hourly-rate" id="EURHourlyRate"></div></div>
+      <div class="billing-effective-date"><label>Effective Date</label><div class="effective-date" id="EffectiveDate"></div></div>
+      </div>
+      </div>
 
-      <div id="BillingRateDetailsEdit">
+      <div id="BillingRateDetailsEdit" class="hide">
+      <div id="BillingRateDetails">
       <div class="billing-rates"><label>USD Daily Rates</label><div class="usd-daily-rate"></div><input type="number" id="USDDailyEdit"/></div>
       <div class="billing-rates"><label>USD Hourly Rates</label><div class="usd-hourly-rate"></div><input type="number" id="USDHourlyEdit" disabled/></div>
       <div class="billing-rates"><label>EUR Daily Rates</label><div class="eur-daily-rate"></div><input type="number" id="EURDailyEdit"/></div>
@@ -609,11 +623,11 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
       <div class="billing-rates"><label>Daily Rate</label><div class="eur-hourly-rate"></div><input type="number" id="ODailyEdit"/></div>
       <div class="billing-rates"><label>Hourly Rate</label><div class="eur-hourly-rate"></div><input type="number" id="OHourlyEdit" disabled/></div>
       <div class="billing-effective-date"><label>Effective Date</label><div class="effective-date"><input type="date" id="EffectiveDateEdit"/></div></div>
+      </div></div>
       </div>
-      </div>
-      <div class="Biography-Experience"> 
+      <div class="Biography-Experience">
       <h4>Biography and Experience</h4>
-      <div class="address-details" id="BioExp">  
+      <div class="address-details" id="BioExp">
       <h5>Short Bio</h5>
       <div><textarea id="Eshortbio"></textarea></div>
       <h5>Bio Attachment(s)</h5>
@@ -627,7 +641,7 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
 
       </div>
       <div class="other-exp">
-      <h5>Other Experience Details</h5> 
+      <h5>Other Experience Details</h5>
       <div class="exp">
       <div class=""><label>Industries</label>
       <div><textarea id="EIndustry"></textarea></div>
@@ -656,13 +670,13 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
       </div>
       </div>
       </div>
-      
+
       </div>
       <div class="btn-section">
       <button class="btn btn-cancel" id="BtnCancel">Cancel</button>
       <button class="btn btn-submit" id="BtnSubmit">Submit</button>
       </div>
-      </div> 
+      </div>
     </div>
     <div id="menu1" class="tab-pane fade">
       <div class="view-availability">
@@ -687,14 +701,14 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
       </div>
       </div>
 
-      
+
       <div class="modal fade" id="addprojectmodal" tabindex="-1" role="dialog" aria-labelledby="addprojectmodalLabel" aria-hidden="true">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="exampleModalLabel">Add Project</h5>
-        
-      </div>  
+
+      </div>
       <div class="modal-body add-project-modal">
       <div class="d-flex">
       <div class="d-flex col-6"><label>Project Type</label><div class="w-100"><select id="projecttypeDD"><option value="sample">Sample</option></select></div></div>
@@ -703,17 +717,17 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
       <div class="d-flex">
       <div class="d-flex col-6"><label>Start Date</label><div class="w-100"><input type="date" id="projectStartDate" /></div></div>
         <div class="d-flex col-6"><label>End Date</label><div class="w-100"><input type="date" id="projectEndDate" /></div></div>
-      </div>   
+      </div>
         <div class="d-flex">
         <div class="d-flex col-6"><div id="percentageDiv" class="d-flex w-100"><label>Percent on Project</label><div class="w-100"><input type="text" id="projectPercent" /></div></div></div>
-        
+
         </div>
-        
+
         <div class="d-flex">
         <div class="d-flex col-6"><label>Client</label><div class="w-100"><input type="text" id="client" /></div></div>
         <div class="d-flex col-6"><label>Project Code</label><div class="w-100"><input type="text" id="projectCode" /></div></div>
         </div>
-        
+
         <div class="d-flex">
         <div class="d-flex col-6"><label>Practice Area</label><div class="w-100"><select id="practiceAreaDD"><option value="sample">Sample</option></select></div></div>
         <div class="d-flex col-6"><label>Project Location</label><div class="w-100"><input type="text" id="ProjectLocation" /></div></div>
@@ -736,8 +750,8 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
     </div>
      </div>
      </div>
-     </div>    
-     </div>     
+     </div>
+     </div>
      `;
 
     const username = document.querySelectorAll(".usernametag");
@@ -748,7 +762,7 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
     const editbtn = document.querySelector(".btn-edit");
 
     // ! Side Nav Click Action
-{
+   {
     $(".clsToggleCollapse").click(function () {
       $(".clsCollapse").each(function () {
         $(this).removeClass("in").attr("style", "");
@@ -756,6 +770,7 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
       $(this).next("div").addClass("in");
     });
     onLoadData();
+    getGroups();
     ActiveSwitch();
     $(".SDHEmployee").click(() => {
       SelectedUserProfile = [];
@@ -763,7 +778,7 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
         viewDir.classList.remove("hide");
         editDir.classList.add("hide");
         editbtn.classList.remove("hide");
-        
+
       }
       if (tableSection.classList.contains("hide")) {
         tableSection.classList.remove("hide");
@@ -773,7 +788,7 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
           order: [[0, "asc"]],
           lengthMenu: [50, 100],
         };
-        
+
         bindEmpTable(options);
       } else {
         var options = {
@@ -908,7 +923,7 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
         viewDir.classList.remove("hide");
         editDir.classList.add("hide");
         editbtn.classList.remove("hide");
-        
+
       }
       if (tableSection.classList.contains("hide")) {
         tableSection.classList.remove("hide");
@@ -921,7 +936,7 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
         viewDir.classList.remove("hide");
         editDir.classList.add("hide");
         editbtn.classList.remove("hide");
-        
+
       }
       if (tableSection.classList.contains("hide")) {
         tableSection.classList.remove("hide");
@@ -934,7 +949,7 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
         viewDir.classList.remove("hide");
         editDir.classList.add("hide");
         editbtn.classList.remove("hide");
-        
+
       }
       if (tableSection.classList.contains("hide")) {
         tableSection.classList.remove("hide");
@@ -947,7 +962,7 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
         viewDir.classList.remove("hide");
         editDir.classList.add("hide");
         editbtn.classList.remove("hide");
-        
+
       }
       if (tableSection.classList.contains("hide")) {
         tableSection.classList.remove("hide");
@@ -964,7 +979,7 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
         viewDir.classList.remove("hide");
         editDir.classList.add("hide");
         editbtn.classList.remove("hide");
-        
+
       }
       if (tableSection.classList.contains("hide")) {
         tableSection.classList.remove("hide");
@@ -982,7 +997,7 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
         viewDir.classList.remove("hide");
         editDir.classList.add("hide");
         editbtn.classList.remove("hide");
-        
+
       }
       if (tableSection.classList.contains("hide")) {
         tableSection.classList.remove("hide");
@@ -999,7 +1014,7 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
         viewDir.classList.remove("hide");
         editDir.classList.add("hide");
         editbtn.classList.remove("hide");
-        
+
       }
       if (tableSection.classList.contains("hide")) {
         tableSection.classList.remove("hide");
@@ -1016,7 +1031,7 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
         viewDir.classList.remove("hide");
         editDir.classList.add("hide");
         editbtn.classList.remove("hide");
-        
+
         }
         if (tableSection.classList.contains("hide")) {
         tableSection.classList.remove("hide");
@@ -1029,7 +1044,7 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
         viewDir.classList.remove("hide");
         editDir.classList.add("hide");
         editbtn.classList.remove("hide");
-        
+
         }
         if (tableSection.classList.contains("hide")) {
         tableSection.classList.remove("hide");
@@ -1043,7 +1058,7 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
         viewDir.classList.remove("hide");
         editDir.classList.add("hide");
         editbtn.classList.remove("hide");
-        
+
         }
         if (tableSection.classList.contains("hide")) {
         tableSection.classList.remove("hide");
@@ -1060,7 +1075,7 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
         viewDir.classList.remove("hide");
         editDir.classList.add("hide");
         editbtn.classList.remove("hide");
-        
+
         }
         if (tableSection.classList.contains("hide")) {
         tableSection.classList.remove("hide");
@@ -1078,7 +1093,7 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
         viewDir.classList.remove("hide");
         editDir.classList.add("hide");
         editbtn.classList.remove("hide");
-        
+
         }
         if (tableSection.classList.contains("hide")) {
         tableSection.classList.remove("hide");
@@ -1095,7 +1110,7 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
         viewDir.classList.remove("hide");
         editDir.classList.add("hide");
         editbtn.classList.remove("hide");
-        
+
         }
         if (tableSection.classList.contains("hide")) {
         tableSection.classList.remove("hide");
@@ -1112,7 +1127,7 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
         viewDir.classList.remove("hide");
         editDir.classList.add("hide");
         editbtn.classList.remove("hide");
-        
+
         }
         if (tableSection.classList.contains("hide")) {
         tableSection.classList.remove("hide");
@@ -1126,7 +1141,7 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
         viewDir.classList.remove("hide");
         editDir.classList.add("hide");
         editbtn.classList.remove("hide");
-        
+
         }
         if (tableSection.classList.contains("hide")) {
         tableSection.classList.remove("hide");
@@ -1143,7 +1158,7 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
         viewDir.classList.remove("hide");
         editDir.classList.add("hide");
         editbtn.classList.remove("hide");
-        
+
         }
         if (tableSection.classList.contains("hide")) {
         tableSection.classList.remove("hide");
@@ -1160,7 +1175,7 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
         viewDir.classList.remove("hide");
         editDir.classList.add("hide");
         editbtn.classList.remove("hide");
-        
+
         }
         if (tableSection.classList.contains("hide")) {
         tableSection.classList.remove("hide");
@@ -1177,7 +1192,7 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
         viewDir.classList.remove("hide");
         editDir.classList.add("hide");
         editbtn.classList.remove("hide");
-        
+
         }
         if (tableSection.classList.contains("hide")) {
         tableSection.classList.remove("hide");
@@ -1194,7 +1209,7 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
         viewDir.classList.remove("hide");
         editDir.classList.add("hide");
         editbtn.classList.remove("hide");
-        
+
         }
         if (tableSection.classList.contains("hide")) {
         tableSection.classList.remove("hide");
@@ -1211,7 +1226,7 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
         viewDir.classList.remove("hide");
         editDir.classList.add("hide");
         editbtn.classList.remove("hide");
-        
+
         }
         if (tableSection.classList.contains("hide")) {
         tableSection.classList.remove("hide");
@@ -1261,7 +1276,7 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
     $("#BtnSubmit").click(() => {
       editsubmitFunction();
     });
-    $("#BtnCancel").click(() => {  
+    $("#BtnCancel").click(() => {
       editcancelFunction();
     });
     $("#add-availability").click(()=>{
@@ -1270,7 +1285,7 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
       }else{
         availSubmitFunc();
       }
-      
+
     })
     $(document).on("change", "#BioAttachEdit", function () {
       if ($(this)[0].files.length > 0) {
@@ -1302,7 +1317,7 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
       $(this).parent().remove();
     });
 
-    
+
     $(document).on("click", ".remove-icon", function () {
       $(this).parent().remove();
     });
@@ -1328,13 +1343,13 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
     })
     $(document).on("change","#projecttypeDD",()=>{
       if($("#projecttypeDD").val() == "Billable/Client" || $("#projecttypeDD").val() == "Marketing"){
-       
+
           $("#percentageDiv").removeClass("hide")
-        
+
       }else{
         $("#projectPercent").val("");
           $("#percentageDiv").addClass("hide")
-       
+
       }
     })
     $(document).on("click","#editProjectAvailability",(e)=>{
@@ -1357,7 +1372,7 @@ export default class StaffdirectoryWebPart extends BaseClientSideWebPart<IStaffd
       $("#projectAvailNotes").val("")
       $("#Projectcomments").val("")
     })
-    
+
     $(document).on("click",".usernametag",()=>{
       if(SelectedUserProfile[0].Affiliation != "Employee" && SelectedUserProfile[0].Affiliation != "Outside Consultant"){
         $("#menu1").addClass("hide");
@@ -1480,6 +1495,8 @@ const onLoadData = async () => {
   StaffAffiliatesDD.innerHTML = StaffAffHtml;
 
   $(".mobNoCode,.homeNoCode,.emergencyNoCode").html(CCodeHtml);
+  ProfilePics = await sp.web.getFolderByServerRelativeUrl(`/sites/StaffDirectory/ProfilePictures`).files.select("*,listItemAllFields").expand("listItemAllFields").get();
+  AllAvailabilityDetails = await sp.web.getList(listUrl + "SDGAvailability").items.select("*,UserName/Title,UserName/EMail,UserName/Id").expand("UserName").top(5000).get();
   await sp.web
     .getList(listUrl + "StaffDirectory")
     .items.select(
@@ -1496,8 +1513,15 @@ const onLoadData = async () => {
     .expand("User,Assistant")
     .get()
     .then((listitem: any) => {
-      console.log(listitem);
+    
       listitem.forEach((li) => {
+        var userPercentage=0;
+      var userpic =   ProfilePics.filter((p)=>p.ListItemAllFields.UserName&& li.User.EMail ? p.ListItemAllFields.UserName.toLowerCase()==li.User.EMail.toLowerCase():"");
+
+      AllAvailabilityDetails.forEach((all)=>{
+        all.UserName.EMail == li.User.EMail && new Date(all.StartDate)<=new Date() && new Date(all.EndDate)>=new Date()?userPercentage += parseInt(all.Percentage):userPercentage += 0;
+      });
+
         UserDetails.push({
           Name: li.User.Title != null ? li.User.Title : "Not Available",
           FirstName: li.User.FirstName != null ? li.User.FirstName : "Not Available",
@@ -1540,7 +1564,9 @@ const onLoadData = async () => {
           Child: li.children != null ? li.children : "Not Available",
           HomeNo: li.HomeNo != null ? li.HomeNo : "Not Available",
           EmergencyNo: li.EmergencyNo != null ? li.EmergencyNo : "Not Available",
-          UserId:li.User.Id
+          UserId:li.User.Id,
+          ProfilePic:userpic[0].ServerRelativeUrl,
+          Availability:100-userPercentage
         });
       });
       getTableData();
@@ -1592,7 +1618,7 @@ async function getTableData() {
   let AllDetailsTable = "";
   let BillingRateTable = "";
   let OfficeDetails = await sp.web
-    .getList(listUrl + "SDGOfficeInfo") 
+    .getList(listUrl + "SDGOfficeInfo")
     .items.get();
   // console.log(OfficeDetails);
   OfficeDetails.forEach((oDetail) => {
@@ -1603,196 +1629,199 @@ async function getTableData() {
     }</td></tr>`;
   });
   let AvailHtml = "";
- AllAvailabilityDetails = await sp.web.getList(listUrl + "SDGAvailability").items.select("*,UserName/Title,UserName/EMail").expand("UserName").top(5000).get();
-
-let AvalabilityUsers = AllAvailabilityDetails.map((users)=>{
-  return (
-    users.UserName.EMail
-  );
-});
-
-AvalabilityUsers = AvalabilityUsers.filter((item,i)=>AvalabilityUsers.indexOf(item)==i);
-// console.log(AvalabilityUsers);
-let UserWithPercentage = []
-AvalabilityUsers.forEach((users)=>{
-
-  let userPercentage = 0;
-  let UserLocation = "";
-  let UserAffiliation = "";
-  AllAvailabilityDetails.forEach((all)=>{
-    all.UserName.EMail == users?userPercentage += parseInt(all.Percentage):userPercentage += 0;
-  });
-  UserDetails.forEach((UDetails)=>{
-    UDetails.Usermail == users?UserLocation = UDetails.Location:"";
-    UDetails.Usermail == users?UserAffiliation = UDetails.Affiliation:"";
-  });
-  UserWithPercentage.push({UserName:users,Percentage:userPercentage,Location:UserLocation,UserAff:UserAffiliation});
-  // console.log({users:users,userPercentage:userPercentage,Location:UserLocation});
-  
-});
 
 
-UserWithPercentage.forEach((avli)=>{
-  AvailHtml+=`<tr><td>${avli.UserName}</td>
+// let AvalabilityUsers = AllAvailabilityDetails.map((users)=>{
+//   return (
+//     {"mail":users.UserName.EMail,"name":users.UserName.Title}
+//   );
+// });
+
+// AvalabilityUsers = AvalabilityUsers.filter((v,i,a)=>a.findIndex(t=>(t.mail === v.mail))===i)
+// let UserWithPercentage = []
+// AvalabilityUsers.forEach((users)=>{
+
+//   let userPercentage = 0;
+//   let UserLocation = "";
+//   let UserAffiliation = "";
+//   AllAvailabilityDetails.forEach((all)=>{
+//     all.UserName.EMail == users.mail && new Date(all.StartDate)<=new Date() && new Date(all.EndDate)>=new Date()?userPercentage += parseInt(all.Percentage):userPercentage += 0;
+//   });
+//   UserDetails.forEach((UDetails)=>{
+//     UDetails.Usermail == users.mail?UserLocation = UDetails.Location:"";
+//     UDetails.Usermail == users.mail?UserAffiliation = UDetails.Affiliation:"";
+//   });
+//   UserWithPercentage.push({UserName:users.name,Percentage:userPercentage,Location:UserLocation,UserAff:UserAffiliation});
+
+// });
+
+
+UserDetails.forEach((avli)=>{
+  AvailHtml+=`<tr><td>${avli.Name}</td>
   <td>${avli.Location}</td>
-  <td>${avli.UserAff}</td>
+  <td>${avli.Affiliation}</td>
   <td>
-  <div class="d-flex align-item-center">  
-  <div class="availability-progress-bar" style="border: 1px solid  ${avli.Percentage >= 50? "#f01616":"#45b345"}">
-  <div class="progress-value" style="height:100%;width:${100 - avli.Percentage}%; background: ${avli.Percentage >= 50? "#f01616":"#45b345"}"></div>
+  <div class="d-flex align-item-center">
+  <div class="availability-progress-bar" style="border: 1px solid  ${avli.Availability >= 50? "#f01616":"#45b345"}">
+  <div class="progress-value" style="height:100%;width:${100 - avli.Availability}%; background: ${avli.Availability >= 50? "#f01616":"#45b345"}"></div>
   </div>
-  <span style="color:${avli.Percentage >= 50? "#f01616":"#45b345"}">${100 - avli.Percentage}%</span></div>
+  <span style="color:${avli.Availability >= 50? "#f01616":"#45b345"}">${100 - avli.Availability}%</span></div>
   </td></tr>`
 })
 $('#StaffAvailabilityTbody').html(AvailHtml)
 
   UserDetails.forEach((details) => {
     // console.log(details.PhoneNumber.split("^"));
-    let ViewPhoneNumber = details.PhoneNumber.split("^"); 
+    let ViewPhoneNumber = details.PhoneNumber.split("^");
     ViewPhoneNumber.pop();
-   
-    if (details.Affiliation == "Employee") {       
-      EmpTable += `<tr><td class="user-details-td"><div  class="usernametag">${details.Name}</div><div class="HUserDetails">
-      <img src="" class="userimg"/>
+
+    if (details.Affiliation == "Employee") {
+      EmpTable += `<tr><td class="user-details-td"><div  class="usernametag"><img src="${details.ProfilePic}" width="30" height="30" />${details.Name}</div><div class="HUserDetails">
+      <img src="${details.ProfilePic}" class="userimg"/>
       <div class="user-name">${details.Name}</div>
-      <div class="user-JTitle">${details.JobTitle}</div>
+      <div class="user-JTitle">${details.Title}</div>
       <div class="user-location">${details.Location}</div>
-      <div class="user-avail-title">Availability</div> 
-      </div></td><td>${   
+      <div class="user-avail-title">Availability</div>
+      <div class="user-JTitle">${details.Availability}%</div>
+      </div></td><td>${
         details.FirstName
       }</td><td>${details.LastName}</td><td>${ViewPhoneNumber.join(
         ","
         )}</td><td>${
-          details.Location == "" ||details.Location == null 
+          details.Location == "" ||details.Location == null
           ? "Not Available"
           : `${details.Location}`
           }</td><td>${
-          details.JobTitle == "" ||details.JobTitle == null 
+          details.JobTitle == "" ||details.JobTitle == null
           ? "Not Available"
           : `${details.JobTitle}`
           }</td><td>${
           details.Title
         }</td><td>${
-          details.Assistant == "" ||details.Assistant == null 
+          details.Assistant == "" ||details.Assistant == null
           ? "Not Available"
           : `${details.Assistant}`
         }</td></tr>`;
     }
     if (details.Affiliation == "Outside Consultant") {
-      OutTable += `<tr><td class="user-details-td"><div  class="usernametag">${details.Name}</div><div class="HUserDetails">
-      <img src="" class="userimg"/>
+      OutTable += `<tr><td class="user-details-td"><div  class="usernametag"><img src="${details.ProfilePic}" width="30" height="30" />${details.Name}</div><div class="HUserDetails">
+      <img src="${details.ProfilePic}" class="userimg"/>
       <div class="user-name">${details.Name}</div>
-      <div class="user-JTitle">${details.JobTitle}</div>
+      <div class="user-JTitle">${details.Title}</div>
       <div class="user-location">${details.Location}</div>
-      <div class="user-avail-title">Availability</div> 
+      <div class="user-avail-title">Availability</div>
+      <div class="user-JTitle">${details.Availability}%</div>
       </div></td><td>${
         details.FirstName
       }</td><td>${details.LastName}</td><td>${ViewPhoneNumber.join(
         ","
         )}</td><td>${
-          details.Location == "" ||details.Location == null 
+          details.Location == "" ||details.Location == null
           ? "Not Available"
           : `${details.Location}`
           }</td><td>${
-          details.JobTitle == "" ||details.JobTitle == null 
+          details.JobTitle == "" ||details.JobTitle == null
           ? "Not Available"
           : `${details.JobTitle}`
           }</td><td>${
-          details.Title == "" ||details.Title == null 
+          details.Title == "" ||details.Title == null
           ? "Not Available"
           : `${details.Title}`
           }</td><td>${
-          details.Assistant == "" ||details.Assistant == null 
+          details.Assistant == "" ||details.Assistant == null
           ? "Not Available"
           : `${details.Assistant}`
         }</td></tr>`;
     }
     if (details.Affiliation == "Affiliate") {
-      AffTable += `<tr><td class="user-details-td"><div  class="usernametag">${details.Name}</div><div class="HUserDetails">
-      <img src="" class="userimg"/>
+      AffTable += `<tr><td class="user-details-td"><div  class="usernametag"><img src="${details.ProfilePic}" width="30" height="30" />${details.Name}</div><div class="HUserDetails">
+      <img src="${details.ProfilePic}" class="userimg"/>
       <div class="user-name">${details.Name}</div>
-      <div class="user-JTitle">${details.JobTitle}</div>
+      <div class="user-JTitle">${details.Title}</div>
       <div class="user-location">${details.Location}</div>
-      <div class="user-avail-title">Availability</div> 
+      <div class="user-avail-title">Availability</div>
+      <div class="user-JTitle">${details.Availability}%</div>
       </div></td><td>${
         details.FirstName
       }</td><td>${details.LastName}</td><td>${ViewPhoneNumber.join(
         ","
         )}</td><td>${
-          details.Location == "" ||details.Location == null 
+          details.Location == "" ||details.Location == null
           ? "Not Available"
           : `${details.Location}`
           }</td><td>${
-          details.JobTitle == "" ||details.JobTitle == null 
+          details.JobTitle == "" ||details.JobTitle == null
           ? "Not Available"
           : `${details.JobTitle}`
           }</td><td>${
-          details.Title == "" ||details.Title == null 
+          details.Title == "" ||details.Title == null
           ? "Not Available"
           : `${details.Title}`
           }</td><td>${
-          details.Assistant == "" ||details.Assistant == null 
+          details.Assistant == "" ||details.Assistant == null
           ? "Not Available"
           : `${details.Assistant}`
         }</td></tr>`;
     }
     if (details.Affiliation == "Alumni") {
-      AlumTable += `<tr><td class="user-details-td"><div  class="usernametag">${details.Name}</div><div class="HUserDetails">
-      <img src="" class="userimg"/>
+      AlumTable += `<tr><td class="user-details-td"><div  class="usernametag"><img src="${details.ProfilePic}" width="30" height="30" />${details.Name}</div><div class="HUserDetails">
+      <img src="${details.ProfilePic}" class="userimg"/>
       <div class="user-name">${details.Name}</div>
-      <div class="user-JTitle">${details.JobTitle}</div>
+      <div class="user-JTitle">${details.Title}</div>
       <div class="user-location">${details.Location}</div>
-      <div class="user-avail-title">Availability</div> 
+      <div class="user-avail-title">Availability</div>
+      <div class="user-JTitle">${details.Availability}%</div>
       </div></td><td>${
         details.FirstName
       }</td><td>${details.LastName}</td><td>${ViewPhoneNumber.join(
         ","
         )}</td><td>${
-          details.Location == "" ||details.Location == null 
+          details.Location == "" ||details.Location == null
           ? "Not Available"
           : `${details.Location}`
           }</td><td>${
-          details.JobTitle == "" ||details.JobTitle == null 
+          details.JobTitle == "" ||details.JobTitle == null
           ? "Not Available"
           : `${details.JobTitle}`
           }</td><td>${
-          details.Title == "" ||details.Title == null 
+          details.Title == "" ||details.Title == null
           ? "Not Available"
           : `${details.Title}`
           }</td><td>${
-          details.Assistant == "" ||details.Assistant == null 
+          details.Assistant == "" ||details.Assistant == null
           ? "Not Available"
           : `${details.Assistant}`
         }</td></tr>`;
     }
-    AllDetailsTable += `<tr><td class="user-details-td"><div  class="usernametag">${details.Name}</div><div class="HUserDetails">
-    <img src="" class="userimg"/>
+    AllDetailsTable += `<tr><td class="user-details-td"><div  class="usernametag"><img src="${details.ProfilePic}" width="30" height="30" />${details.Name}</div><div class="HUserDetails">
+    <img src="${details.ProfilePic}" class="userimg"/>
     <div class="user-name">${details.Name}</div>
-    <div class="user-JTitle">${details.JobTitle}</div>
+    <div class="user-JTitle">${details.Title}</div>
     <div class="user-location">${details.Location}</div>
-    <div class="user-avail-title">Availability</div> 
+    <div class="user-avail-title">Availability</div>
+    <div class="user-JTitle">${details.Availability}%</div>
     </div></td><td>${
       details.FirstName
     }</td><td>${details.LastName}</td><td>${ViewPhoneNumber.join(
       ","
       )}</td><td>${
-        details.Location == "" ||details.Location == null 
+        details.Location == "" ||details.Location == null
         ? "Not Available"
         : `${details.Location}`
         }</td><td>${
-        details.JobTitle == "" ||details.JobTitle == null 
+        details.JobTitle == "" ||details.JobTitle == null
         ? "Not Available"
         : `${details.JobTitle}`
         }</td><td>${
-        details.Title == "" ||details.Title == null 
+        details.Title == "" ||details.Title == null
         ? "Not Available"
         : `${details.Title}`
         }</td><td>${
-          details.Assistant == "" ||details.Assistant == null 
+          details.Assistant == "" ||details.Assistant == null
           ? "Not Available"
           : `${details.Assistant}`
         }</td></tr>`;
-    BillingRateTable += `<tr><td class="usernametag">${details.Name}</td><td>${
+    BillingRateTable += `<tr><td class="usernametag"><img src="${details.ProfilePic}" width="30" height="30" />${details.Name}</td><td>${
       details.Title
     }</td><td><div>${
       details.USDDaily == "" || details.USDDaily == null
@@ -1849,7 +1878,7 @@ $('#StaffAvailabilityTbody').html(AvailHtml)
   // bindStaffAvailTable(options);
   SdhEmpTableRowGrouping(1,"StaffAvailabilityTable",bindStaffAvailTable);
   UserProfileDetail();
-     
+
 }
 const bindEmpTable = (options) => {
   (<any>$("#SdhEmpTable")).DataTable(options);
@@ -1952,6 +1981,7 @@ const UserProfileDetail = async () => {
   const UserEdit = document.querySelector(".edit-directory");
   const StaffStatus = document.querySelector("#staffstatusDD");
   const WorkscheduleSection = document.querySelector("#workscheduleSec");
+  const viewBiling = document.querySelector(".view-directory .user-billing-rates")
   SelectedUserProfile = [];
   username.forEach((btn) => {
     btn.addEventListener("click", async (e) => {
@@ -1960,27 +1990,27 @@ const UserProfileDetail = async () => {
         userpage.classList.remove("hide");
       }
       SelectedUser = e.currentTarget["textContent"];
-      
+
       SelectedUserProfile = UserDetails.filter((li) => {
         return li.Name == SelectedUser;
       });
+      if((SelectedUserProfile[0].Usermail.toLowerCase()==currentMail.toLowerCase()&&IsgeneralStaff)||IsAdminStaff)
+      {
+         Edit.classList.remove('hide');
+         viewBiling.classList.remove('hide')
+      }
+      else if(IssplStaff)
+      {
+        Edit.classList.add('hide');
+        viewBiling.classList.remove('hide')
+      }
+      else{
+        Edit.classList.add('hide');
+        viewBiling.classList.add('hide')
+      }
+      useravailabilityDetails();
+       $(".profile-picture").attr("src", SelectedUserProfile[0].ProfilePic);
       
-      useravailabilityDetails(); 
-      const specificUser = graph.users
-        .getById(SelectedUserProfile[0].Usermail)
-        .photo.getBlob()
-        .then((photo: any) => {
-          // console.log(photo);
-          const url = window.URL;
-          const blobUrl = url.createObjectURL(photo);
-          $(".profile-picture").attr("src", blobUrl);
-        })
-        .catch((err) => {
-          $(".profile-picture").attr(
-            "src",
-            "data:image/png;base64,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"
-          );
-        });
       let filesHtml = "";
       let editfileHtml = "";
       let files = await sp.web
@@ -1993,7 +2023,7 @@ const UserProfileDetail = async () => {
         // console.log(file.Name.split(".").pop());
 
         if (
-          file.Name.split(".").pop() == "doc" || 
+          file.Name.split(".").pop() == "doc" ||
           file.Name.split(".").pop() == "docx"
         ) {
           filesHtml += `<div class="doc-section"><span class="word-doc"></span><a href='${file.ServerRelativeUrl}' target="_blank">${file.Name}</a></div>`;
@@ -2013,11 +2043,11 @@ const UserProfileDetail = async () => {
           editfileHtml += `<div class="quantityFiles"><span class="upload-filename">${file.Name}</span><a  filename="${file.Name}" class="clsfileremove">x</a></div>`;
         }
       });
-  
+
       let billingRateHtml = "";
       if (SelectedUserProfile[0].USDDaily != null && SelectedUserProfile[0].USDDaily != 0 && SelectedUserProfile[0].USDDaily != "0")
       {
-       
+
         billingRateHtml += `<div class="billing-rates"><label>USD Daily Rates</label><div class="usd-daily-rate lblBlue" id="UsdDailyRate">${SelectedUserProfile[0].USDDaily}</div></div><div class="billing-rates"><label>USD Hourly Rates</label><div class="usd-hourly-rate lblBlue" id="UsdHourlyRate">${SelectedUserProfile[0].USDHourly}</div></div>`;
       }
 
@@ -2042,14 +2072,14 @@ const UserProfileDetail = async () => {
         ).toLocaleDateString()}</div></div>`;
       }
       ItemID = SelectedUserProfile[0].ItemID;
- 
+
       selectedUsermail = SelectedUserProfile[0].Usermail;
       // console.log(selectedUsermail);
       if(SelectedUserProfile[0].UserPersonalMail != "" && SelectedUserProfile[0].UserPersonalMail != null) {
 
         $('#userpersonalmail').parent().removeClass('hide');
          $('#userpersonalmail').html(SelectedUserProfile[0].UserPersonalMail)
-      } 
+      }
       else{
         $('#userpersonalmail').html("")
         $('#userpersonalmail').parent().addClass('hide');
@@ -2059,9 +2089,9 @@ const UserProfileDetail = async () => {
         <label>Assistant : </label><div class="lblRight" id="assistantViewpage">${SelectedUserProfile[0].Assistant}</div>
         </div>`)
       }else{
-        $("#viewAssistant").html("")  
-      } 
-      
+        $("#viewAssistant").html("")
+      }
+
       if(SelectedUserProfile[0].PhoneNumber)
           {
               var html="";
@@ -2133,17 +2163,20 @@ const UserProfileDetail = async () => {
       <div class="d-flex"><label>Work Schedule</label><p class="lblRight" id="workSchedule">${SelectedUserProfile[0].WorkSchedule == null ||SelectedUserProfile[0].WorkSchedule ==  ""?"Not Available":SelectedUserProfile[0].WorkSchedule}</p></div>`
           : ""
       );
-      var finalmonth: any = "";
-      var dd = new Date(SelectedUserProfile[0].EffectiveDate).getDate();
-      var mm = new Date(SelectedUserProfile[0].EffectiveDate).getMonth() + 1;
-      mm < 10 ? (finalmonth = "0" + mm) : (finalmonth = mm);
-      var yyyy = new Date(SelectedUserProfile[0].EffectiveDate).getFullYear();
-      var dateformat = yyyy + "-" + finalmonth + "-" + dd;
-      $("#EffectiveDateEdit").val(dateformat);
-      
+      var editfMonth: any = "";
+      var editfday: any = "";
+        var Sdd = new Date(SelectedUserProfile[0].EffectiveDate).getDate();
+        Sdd < 10 ? (editfday = "0" + Sdd) : (editfday = Sdd);
+        var Smm = new Date(SelectedUserProfile[0].EffectiveDate).getMonth() + 1;
+        Smm < 10 ? (editfMonth = "0" + Smm) : (editfMonth = Smm);
+        var Syyyy = new Date(SelectedUserProfile[0].EffectiveDate).getFullYear();
+        var Sdateformat = Syyyy + "-" + editfMonth + "-" + editfday;
+
+      $("#EffectiveDateEdit").val(Sdateformat);
+
     });
   });
-  
+
   $("#USDDailyEdit").keyup(() => {
     var usdvalue: any = $("#USDDailyEdit").val();
     var finalusdval = usdvalue / 8;
@@ -2157,7 +2190,7 @@ const UserProfileDetail = async () => {
   $("#ODailyEdit").keyup(() => {
     var ovalue: any = $("#ODailyEdit").val();
     var finalovalue = ovalue / 8;
-    $("#OHourlyEdit").val(finalovalue); 
+    $("#OHourlyEdit").val(finalovalue);
   });
   $(document).on("click", ".clsfileremove", function () {
     let filename = $(this).attr("filename");
@@ -2169,7 +2202,7 @@ const UserProfileDetail = async () => {
       .recycle()
       .then(function (data) {});
   });
-  
+
 };
 
 const editFunction = async() => {
@@ -2187,11 +2220,63 @@ const editFunction = async() => {
   const Edit = document.querySelector("#btnEdit");
   const UserView = document.querySelector(".view-directory");
   const UserEdit = document.querySelector(".edit-directory");
-
+  const adminviewBilling = document.querySelector("#BillingRateDetailsEdit");
+  const userviewBilling = document.querySelector("#BillingRateDetailsView");
+  const viewBiling =  document.querySelector(".edit-directory .user-billing-rates")
   if (!UserView.classList.contains("hide")) {
     UserView.classList.add("hide");
     UserEdit.classList.remove("hide");
     Edit.classList.add("hide");
+    if(IsAdminStaff)
+    {
+      viewBiling.classList.remove('hide');
+      adminviewBilling.classList.remove('hide');
+      userviewBilling.classList.add('hide');
+    }
+
+    else
+    {
+      viewBiling.classList.add('hide');
+      adminviewBilling.classList.add('hide');
+      userviewBilling.classList.remove('hide');
+
+
+
+
+      let billingRateHtml = "";
+      if (SelectedUserProfile[0].USDDaily != null && SelectedUserProfile[0].USDDaily != 0 && SelectedUserProfile[0].USDDaily != "0")
+      {
+
+        billingRateHtml += `<div class="billing-rates"><label>USD Daily Rates</label><div class="usd-daily-rate lblBlue" id="UsdDailyRate">${SelectedUserProfile[0].USDDaily}</div></div><div class="billing-rates"><label>USD Hourly Rates</label><div class="usd-hourly-rate lblBlue" id="UsdHourlyRate">${SelectedUserProfile[0].USDHourly}</div></div>`;
+      }
+
+      if (
+        SelectedUserProfile[0].EURDaily != null &&
+        SelectedUserProfile[0].EURDaily != 0 &&
+        SelectedUserProfile[0].EURDaily != "0"
+      ) {
+        billingRateHtml += `<div class="billing-rates"><label>EUR Daily Rates</label><div class="eur-daily-rate lblBlue" id="EURDailyRate">${SelectedUserProfile[0].EURDaily}</div></div><div class="billing-rates"><label>EUR Hourly Rates</label><div class="eur-hourly-rate lblBlue" id="EURHourlyRate">${SelectedUserProfile[0].EURHourly}</div></div>`;
+      }
+
+      if (
+        SelectedUserProfile[0].OtherCurrDaily != null &&
+        SelectedUserProfile[0].OtherCurrDaily != 0 &&
+        SelectedUserProfile[0].OtherCurrDaily != "0"
+      ) {
+        billingRateHtml += `<div class="billing-rates"><label>${SelectedUserProfile[0].OtherCurr} Daily Rates</label><div class="eur-daily-rate lblBlue" id="oDailyRate">${SelectedUserProfile[0].OtherCurrDaily}</div></div><div class="billing-rates"><label>${SelectedUserProfile[0].OtherCurr} Hourly Rates</label><div class="eur-hourly-rate lblBlue" id="oHourlyRate">${SelectedUserProfile[0].OtherCurrHourly}</div></div>`;
+      }
+      if (SelectedUserProfile[0].EffectiveDate != null) {
+        billingRateHtml += ` <div class="billing-effective-date"><label>Effective Date</label><div class="effective-date lblBlue" id="EffectiveDate">${new Date(
+          SelectedUserProfile[0].EffectiveDate
+        ).toLocaleDateString()}</div></div>`;
+      }
+      $('#BillingRateDetailsView').html("");
+      $('#BillingRateDetailsView').html(billingRateHtml)
+    }
+
+
+
+
   } else {
     UserEdit.classList.remove("hide");
     Edit.classList.add("hide");
@@ -2200,7 +2285,7 @@ const editFunction = async() => {
   let MobileNumberHtmlSec = "";
   let HomeNumberHtmlSec = "";
   let EmergencyNumberHtmlSec = "";
-  
+
 
   let MCCodeArr = []
   if (
@@ -2209,7 +2294,7 @@ const editFunction = async() => {
     let AllMnumber = SelectedUserProfile[0].PhoneNumber.split("^");
     AllMnumber.pop();
     let AllMobileNumbers = AllMnumber;
-    
+
     AllMobileNumbers.forEach((numbers, i) => {
       // console.log(CCodeHtml)
       let SplitedMNum = numbers.split(" - ");
@@ -2358,7 +2443,7 @@ if(HCCodeArr.length > 0){
     $("#workscheduleEdit").html("");
     $("#workscheduleEdit").html(`<div class="d-flex w-100 hide" id="workscheduleSec"> <label>Work Schedule</label><div class="w-100"><input type="text" id="workScheduleE" value="${SelectedUserProfile[0].WorkSchedule == "" || SelectedUserProfile[0].WorkSchedule == null ? "":SelectedUserProfile[0].WorkSchedule}"></div></div>`)
   }
-  
+
   var emailAddress =
     "i:0#.f|membership|" + SelectedUserProfile[0].AssistantMail.toLowerCase();
   var divID = "peoplepickerText_TopSpan";
@@ -2373,7 +2458,7 @@ if(HCCodeArr.length > 0){
   // setTimeout(() =>{
   //   console.log($("#peoplepickerText"));
   // },10000)
-  
+
   // $('.sp-peoplepicker-userDisplayLink').text();
 };
 const editsubmitFunction = async () => {
@@ -2420,61 +2505,102 @@ const editsubmitFunction = async () => {
     const profile = await sp.web.siteUsers.getByEmail(loginName).get();
     profileID = profile.Id
   }
-  
 
+var insertObj={}
   try {
+    if(IsAdminStaff)
+    {
+insertObj={
+  Title: "SDG User Info",
+  PersonalEmail: $("#personalmailID").val(),
+  MobileNo: mobNumUpdate,
+  HomeNo: homeNumUpdate,
+  EmergencyNo: emergencyNumUpdate,
+  HomeAddLine: $("#PAddLineE").val(),
+  HomeAddCity: $("#PAddCityE").val(),
+  HomeAddState: $("#PAddStateE").val(),
+  HomeAddPCode: $("#PAddPCodeE").val(),
+  HomeAddCountry: $("#PAddCountryE").val(),
+  IndustryExp: $("#EIndustry").val(),
+  LanguageExp: $("#ELanguage").val(),
+  SDGCourses: $("#ESDGCourse").val(),
+  SoftwareExp: $("#ESoftwarExp").val(),
+  Membership: $("#EMembership").val(),
+  SpecialKnowledge: $("#ESKnowledge").val(),
+  Citizenship: $("#citizenshipE").val(),
+  ShortBio: $("#Eshortbio").val(),
+  USDDailyRate: $("#USDDailyEdit").val(),
+  USDHourlyRate: $("#USDHourlyEdit").val(),
+  EURDailyRate: $("#EURDailyEdit").val(),
+  EURHourlyRate: $("#EURHourlyEdit").val(),
+  OtherCurrency: $("#othercurrDD").val(),
+  ODailyRate: $("#ODailyEdit").val(),
+  OHourlyRate: $("#OHourlyEdit").val(),
+  EffectiveDate: $("#EffectiveDateEdit").val(),
+  signother: $("#significantOther").val(),
+  children: $("#children").val(),
+  WorkingSchedule: $("#workSchedule").val(),
+  SDGOffice: $("#workLocationDD").val(),
+  StaffStatus: $("#staffstatusDD").val(),
+  LinkedInLink:{
+    "__metadata": { type: "SP.FieldUrlValue" },
+    Description: "LinkedIn",
+    Url: $("#linkedInID").val()
+
+  },
+  stafffunction:$("#StaffFunctionEdit").val(),
+  SDGAffiliation:$("#StaffAffiliatesEdit").val(),
+  AssistantId: profileID,
+}
+    }
+    else
+    {
+      insertObj={
+        Title: "SDG User Info",
+        PersonalEmail: $("#personalmailID").val(),
+        MobileNo: mobNumUpdate,
+        HomeNo: homeNumUpdate,
+        EmergencyNo: emergencyNumUpdate,
+        HomeAddLine: $("#PAddLineE").val(),
+        HomeAddCity: $("#PAddCityE").val(),
+        HomeAddState: $("#PAddStateE").val(),
+        HomeAddPCode: $("#PAddPCodeE").val(),
+        HomeAddCountry: $("#PAddCountryE").val(),
+        IndustryExp: $("#EIndustry").val(),
+        LanguageExp: $("#ELanguage").val(),
+        SDGCourses: $("#ESDGCourse").val(),
+        SoftwareExp: $("#ESoftwarExp").val(),
+        Membership: $("#EMembership").val(),
+        SpecialKnowledge: $("#ESKnowledge").val(),
+        Citizenship: $("#citizenshipE").val(),
+        ShortBio: $("#Eshortbio").val(),
+        signother: $("#significantOther").val(),
+        children: $("#children").val(),
+        WorkingSchedule: $("#workSchedule").val(),
+        SDGOffice: $("#workLocationDD").val(),
+        StaffStatus: $("#staffstatusDD").val(),
+        LinkedInLink:{
+          "__metadata": { type: "SP.FieldUrlValue" },
+          Description: "LinkedIn",
+          Url: $("#linkedInID").val()
+
+        },
+        stafffunction:$("#StaffFunctionEdit").val(),
+        SDGAffiliation:$("#StaffAffiliatesEdit").val(),
+        AssistantId: profileID,
+      }
+    }
     const update = await sp.web
     .getList(listUrl + "StaffDirectory")
     .items.getById(ItemID)
-    .update({
-      Title: "SDG User Info",
-      PersonalEmail: $("#personalmailID").val(),
-      MobileNo: mobNumUpdate,
-      HomeNo: homeNumUpdate,
-      EmergencyNo: emergencyNumUpdate,
-      HomeAddLine: $("#PAddLineE").val(),
-      HomeAddCity: $("#PAddCityE").val(),
-      HomeAddState: $("#PAddStateE").val(),
-      HomeAddPCode: $("#PAddPCodeE").val(),
-      HomeAddCountry: $("#PAddCountryE").val(),
-      IndustryExp: $("#EIndustry").val(),
-      LanguageExp: $("#ELanguage").val(),
-      SDGCourses: $("#ESDGCourse").val(),
-      SoftwareExp: $("#ESoftwarExp").val(),
-      Membership: $("#EMembership").val(),
-      SpecialKnowledge: $("#ESKnowledge").val(),
-      Citizenship: $("#citizenshipE").val(),
-      ShortBio: $("#Eshortbio").val(),
-      USDDailyRate: $("#USDDailyEdit").val(),
-      USDHourlyRate: $("#USDHourlyEdit").val(),
-      EURDailyRate: $("#EURDailyEdit").val(),
-      EURHourlyRate: $("#EURHourlyEdit").val(),
-      OtherCurrency: $("#othercurrDD").val(),
-      ODailyRate: $("#ODailyEdit").val(),
-      OHourlyRate: $("#OHourlyEdit").val(),
-      EffectiveDate: $("#EffectiveDateEdit").val(),
-      signother: $("#significantOther").val(),
-      children: $("#children").val(),
-      WorkingSchedule: $("#workSchedule").val(),
-      SDGOffice: $("#workLocationDD").val(),
-      StaffStatus: $("#staffstatusDD").val(),
-      LinkedInLink:{
-        "__metadata": { type: "SP.FieldUrlValue" },
-        Description: "LinkedIn",
-        Url: $("#linkedInID").val()
-   
-      },
-      stafffunction:$("#StaffFunctionEdit").val(),
-      SDGAffiliation:$("#StaffAffiliatesEdit").val(),
-      AssistantId: profileID,
-    });
+    .update(insertObj);
   location.reload();
   } catch (error) {
     console.log(error);
-    
-    
+
+
   }
-}; 
+};
 const editcancelFunction = () => {
   const viewDir = document.querySelector(".view-directory");
   const editDir = document.querySelector(".edit-directory");
@@ -2488,25 +2614,26 @@ const editcancelFunction = () => {
 
 const useravailabilityDetails = async() =>{
   console.log(SelectedUserProfile[0].Name);
-  
-   availList = await sp.web
-  .getList(listUrl + "SDGAvailability")
-  .items.select("*","UserName/EMail","UserName/Id").expand("UserName").filter(`UserName/EMail eq '${SelectedUserProfile[0].Usermail}'`)
-  .getAll();
-  console.log(availList); 
-  
+
+  //  availList = await sp.web
+  // .getList(listUrl + "SDGAvailability")
+  // .items.select("*","UserName/EMail","UserName/Id").expand("UserName").filter(`UserName/EMail eq '${SelectedUserProfile[0].Usermail}'`)
+  // .getAll();
+  availList=AllAvailabilityDetails.filter((a)=>{return a.UserName.EMail==SelectedUserProfile[0].Usermail});
+  console.log(availList);
+
   let availTableHtml = "";
   availList.forEach((avail)=>{
     availTableHtml  += `<tr><td>${avail.Project}</td><td>${new Date(avail.StartDate).toLocaleDateString()}</td><td>${new Date(avail.EndDate).toLocaleDateString()}</td><td>${avail.Percentage}%</td><td>${avail.Comments}</td><td><div class="d-flex"><div class="action-btn action-edit" data-toggle="modal" data-target="#addprojectmodal" data-id="${avail.ID}" id="editProjectAvailability"></div><div class="action-btn action-delete" data-id="${avail.ID}" id="deleteProjectAvailability"> </div></div></td></tr>`
   });
-  
+
   $("#UserAvailabilityTbody").html("");
   $("#UserAvailabilityTbody").html(availTableHtml);
-  var options = {  
+  var options = {
     order: [[0, "asc"]],
     destroy:true,
-    
-  }; 
+
+  };
  var userAvailTable =  (<any>$("#UserAvailabilityTable")).DataTable(options);
  $('.usernametag').on( 'click', function () {
   userAvailTable.destroy();
@@ -2519,14 +2646,14 @@ function removeSelectedfile(filename) {
       ///filesQuantity[i].remove();
       bioAttachArr.splice(i, 1);
       break;
-    } 
+    }
   }
 }
 const removeAvailProject = (ID) =>{
   sp.web.getList(listUrl + "SDGAvailability").items.getById(ID).delete();
 }
 const multipleMobNo = () => {
-  $("#mobileNoSec").append(  
+  $("#mobileNoSec").append(
     `<div class="d-flex mobNumbers"><select class="mobNoCode">${CCodeHtml}</select><input type="number" class="mobNo" id="mobileno1"/><span class="removeMobNo remove-icon"></span></div>`
   );
 };
@@ -2541,9 +2668,7 @@ const multipleEmergencyNo = () => {
   );
 };
 const fillEditSection = (ID) =>{
-  console.log("log")
-  
-   console.log(ID);console.log("Test")
+   editID=ID;
    var editedData = availList.filter((e)=>{return e.Id == parseInt(ID)});
    if(editedData.length>0){
     var Sfinalmonth: any = "";
@@ -2580,7 +2705,7 @@ const fillEditSection = (ID) =>{
 const availSubmitFunc = async() =>{
 var bwArray=[];
 var isAllSuccess=true
-  console.log(availList); 
+  console.log(availList);
   var sDate:any=$("#projectStartDate").val()
   var eDate:any=$("#projectEndDate").val();
   var startd:any = new Date(sDate);
@@ -2589,19 +2714,19 @@ var isAllSuccess=true
   endd = new Date(newend);
   while(startd < endd){
     bwArray.push(new Date(startd).toLocaleDateString())
-    console.log(startd); // ISO Date format          
+    console.log(startd); // ISO Date format
     var newDate = startd.setDate(startd.getDate() + 1);
     startd = new Date(newDate);
   }
   var enteredPercentage=parseInt(<any>$("#projectPercent").val())
-    
+
     // bwArray.map((datearr)=>{
       for(let i=0;i<bwArray.length;i++)
       {
-        let datearr=bwArray[i];
+        let datearr=new Date(bwArray[i]);
         let filteredData=[];
      availList.filter((data)=>{
-        if(new Date(data.StartDate).toLocaleDateString()<=datearr && new Date(data.EndDate).toLocaleDateString()>=datearr)
+        if(new Date(data.StartDate)<=datearr && new Date(data.EndDate)>=datearr)
         {
           filteredData.push(data);
         }
@@ -2618,9 +2743,9 @@ var isAllSuccess=true
       break;
     }
   }
-  
+
  let ProjectPercent = 0;
- 
+
   if(isAllSuccess)
   {
     const submitProject = await sp.web.getList(listUrl + "SDGAvailability").items.add({
@@ -2636,7 +2761,7 @@ var isAllSuccess=true
         Notes:$("#projectAvailNotes").val(),
         Comments:$("#Projectcomments").val()
       })
-  
+
   $("#projectName").val("")
   $("#projectStartDate").val("")
   $("#projectEndDate").val("")
@@ -2667,17 +2792,17 @@ const availUpdateFunc = () =>{
   while(startd < endd){
     bwArray.push(new Date(startd).toLocaleDateString())
     var newDate = startd.setDate(startd.getDate() + 1);
-    startd = new Date(newDate);       
+    startd = new Date(newDate);
   }
   var enteredPercentage=parseInt(<any>$("#projectPercent").val())
-    
+
     // bwArray.map((datearr)=>{
       for(let i=0;i<bwArray.length;i++)
       {
-        let datearr=bwArray[i];
+        let datearr=new Date(bwArray[i]);
         let filteredData=[];
      availList.filter((data)=>{
-        if(new Date(data.StartDate).toLocaleDateString()<=datearr && new Date(data.EndDate).toLocaleDateString()>=datearr)
+        if(new Date(data.StartDate)<=datearr && new Date(data.EndDate)>=datearr&&data.Id!=parseInt(editID))
         {
           filteredData.push(data);
         }
@@ -2696,34 +2821,53 @@ const availUpdateFunc = () =>{
   }
 
   let ProjectPercent = 0;
-  $("#projectPercent").val() == ""?ProjectPercent=0:ProjectPercent=parseInt(<any>$("#projectPercent").val())
-  const updateProject =  sp.web
-  .getList(listUrl + "SDGAvailability").items.getById(AvailEditID).update(
-    {
-      UserName:SelectedUserProfile[0].Name,
-      Project:$("#projectName").val(),
-      StartDate:$("#projectStartDate").val(),
-      EndDate:$("#projectEndDate").val(),
-      Percentage:ProjectPercent.toString(),
-      ProjectArea:$("#practiceAreaDD").val(),
-      Client:$("#client").val(),
-      ProjectCode:$("#projectCode").val(),
-      ProjectLocation:$("#ProjectLocation").val(),
-      Notes:$("#projectAvailNotes").val(),
-      Comments:$("#Projectcomments").val()
-    }
-  );
-  $("#projectName").val("")
-  $("#projectStartDate").val("")
-  $("#projectEndDate").val("")
-  $("#projectPercent").val("")
-  $("#practiceAreaDD").val("")
-  $("#client").val("")
-  $("#projectCode").val("")
-  $("#ProjectLocation").val("")
-  $("#projectAvailNotes").val("")
-  $("#Projectcomments").val("")
-  AvailEditID = 0;
-  AvailEditFlag = false;
-  location.reload();
+  // $("#projectPercent").val() == ""?ProjectPercent=0:ProjectPercent=parseInt(<any>$("#projectPercent").val())
+  if(isAllSuccess)
+  {
+    const updateProject =  sp.web
+    .getList(listUrl + "SDGAvailability").items.getById(AvailEditID).update(
+      {
+        Project:$("#projectName").val(),
+        StartDate:$("#projectStartDate").val(),
+        EndDate:$("#projectEndDate").val(),
+        Percentage:enteredPercentage.toString(),
+        ProjectArea:$("#practiceAreaDD").val(),
+        Client:$("#client").val(),
+        ProjectCode:$("#projectCode").val(),
+        ProjectLocation:$("#ProjectLocation").val(),
+        Notes:$("#projectAvailNotes").val(),
+        Comments:$("#Projectcomments").val()
+      }
+    );
+    $("#projectName").val("")
+    $("#projectStartDate").val("")
+    $("#projectEndDate").val("")
+    $("#projectPercent").val("")
+    $("#practiceAreaDD").val("")
+    $("#client").val("")
+    $("#projectCode").val("")
+    $("#ProjectLocation").val("")
+    $("#projectAvailNotes").val("")
+    $("#Projectcomments").val("")
+    AvailEditID = 0;
+    AvailEditFlag = false;
+    location.reload();
+  }
+
+}
+
+const getGroups = async () =>{
+  await sp.web.currentUser.get().then((user) => {
+  sp.web.siteUsers.getById(user.Id).groups.get()
+  .then((groupsData) => {
+            groupsData.forEach(group => {
+                if(group.Title == "General Employees")
+                IsgeneralStaff=true
+                else if(group.Title == "Special Access Employee")
+                IssplStaff=true;
+                else if(group.Title == "Staff Directory Admin")
+                IsAdminStaff=true
+              });
+  });
+  });
 }
